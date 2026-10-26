@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Buku Kas Futsal - Rekap Pemasukan, Pengeluaran & Sisa</title>
+  
+  <!-- iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kas Futsal">
+  <meta name="theme-color" content="#107C41">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-icon">⚽</div>
+        <div>
+          <h1 class="brand-title">Kas Futsal</h1>
+          <p class="brand-subtitle">Pemasukan, Pengeluaran, Sisa & Total</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnSyncGSheet" class="btn-icon-header" title="Sinkronkan dengan Google Sheets" aria-label="Sync Google Sheets">☁️</button>
+        <button id="btnOpenIosGuide" class="btn-icon-header" title="Pasang di iPhone" aria-label="Install App">📲</button>
+        <button id="btnExportMenu" class="btn-icon-header" title="Menu Cadangan & Unduh" aria-label="Menu Opsi">⚙️</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- Status Bar Sinkronisasi & Perlindungan Data -->
+    <div class="sync-bar" id="syncStatusBar">
+      <div class="sync-status-indicator">
+        <span class="sync-dot" id="syncStatusDot"></span>
+        <span id="syncStatusText" style="color: var(--text-muted);">Data tersimpan aman di HP (Offline & Cloud)</span>
+      </div>
+      <button class="btn-sync-action" id="btnTriggerSync">
+        Sync 🔄
+      </button>
+    </div>
+    
+    <!-- 4 Key Summary / Total Cards (KPIs) -->
+    <section class="kpi-grid">
+      <div class="kpi-card income">
+        <div class="kpi-label">
+          <span>🟢</span>
+          <span>Total Pemasukan</span>
+        </div>
+        <div class="kpi-value" id="kpiIncome">Rp 0</div>
+        <div class="kpi-sub">Total uang kas yang masuk</div>
+      </div>
+
+      <div class="kpi-card expense">
+        <div class="kpi-label">
+          <span>🔴</span>
+          <span>Total Pengeluaran</span>
+        </div>
+        <div class="kpi-value" id="kpiExpense">Rp 0</div>
+        <div class="kpi-sub">Total biaya lapangan & konsumsi</div>
+      </div>
+
+      <div class="kpi-card balance">
+        <div class="kpi-label">
+          <span>🔵</span>
+          <span>Total Sisa Kas</span>
+        </div>
+        <div class="kpi-value" id="kpiBalance">Rp 0</div>
+        <div class="kpi-sub" id="kpiStatusText">Saldo kas tim tersedia</div>
+      </div>
+    </section>
+
+    <!-- Segmented Control: Pilihan Tampilan HP / Tabel Excel -->
+    <div class="segmented-control">
+      <button class="segmented-btn active" id="tabViewCards">
+        <span>📱</span>
+        <span>Tampilan Layar HP</span>
+      </button>
+      <button class="segmented-btn" id="tabViewTable">
+        <span>📊</span>
+        <span>Tampilan Tabel Excel</span>
+      </button>
+    </div>
+
+    <!-- Toolbar & Filter -->
+    <section class="toolbar-card">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Cari keterangan / kategori...">
+      </div>
+
+      <div class="toolbar-buttons">
+        <button id="btnToggleAutoBalance" class="btn btn-outline" title="Ganti mode perhitungan sisa saldo otomatis atau manual">
+          <span id="autoBalanceIcon">🔄</span>
+          <span id="autoBalanceLabel">Sisa: Otomatis</span>
+        </button>
+        <button id="btnAddRow" class="btn btn-primary">
+          <span>➕</span>
+          <span>Tambah Baris</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- VIEW 1: KARTU MOBILE (OPTIMAL UNTUK LAYAR IPHONE)          -->
+    <!-- ========================================================== -->
+    <section id="mobileCardsSection" class="cards-view-container">
+      <!-- Dynamic transaction cards rendered here by app.js -->
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- VIEW 2: SPREADSHEET TABLE GRID (EXCEL STYLE)               -->
+    <!-- ========================================================== -->
+    <section id="spreadsheetTableSection" class="sheet-card" style="display: none;">
+      <div class="sheet-header-bar">
+        <div class="sheet-title">
+          <span>📊 Tabel Spreadsheet Kas</span>
+          <span class="badge-auto" id="sheetBadge">Formula Saldo Otomatis</span>
+        </div>
+        <div style="font-size: 0.74rem; color: var(--text-muted);">
+          <span id="rowCountLabel">0 transaksi</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="spreadsheet-table" id="kasTable">
+          <thead>
+            <tr>
+              <th style="width: 50px;">No</th>
+              <th style="width: 130px;">Tanggal</th>
+              <th style="min-width: 180px;">Keterangan Transaksi</th>
+              <th style="width: 140px;">Kategori</th>
+              <th style="width: 135px;">Pemasukan (Rp)</th>
+              <th style="width: 135px;">Pengeluaran (Rp)</th>
+              <th style="width: 135px;">Sisa Kas (Rp)</th>
+              <th style="width: 50px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Dynamic rows generated by app.js -->
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" style="text-align: right; padding-right: 14px;">TOTAL KESELURUHAN</td>
+              <td style="text-align: right; color: var(--accent-income);" id="totIncomeFoot">Rp 0</td>
+              <td style="text-align: right; color: var(--accent-expense);" id="totExpenseFoot">Rp 0</td>
+              <td style="text-align: right; color: var(--accent-balance);" id="totBalanceFoot">Rp 0</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Action Dock for Mobile / iPhone -->
+  <nav class="bottom-dock">
+    <button class="dock-btn" id="dockBtnAdd">
+      <span class="icon">➕</span>
+      <span>Tambah</span>
+    </button>
+    <button class="dock-btn" id="dockBtnSwitchView">
+      <span class="icon" id="dockSwitchIcon">📊</span>
+      <span id="dockSwitchLabel">Tabel</span>
+    </button>
+    <button class="dock-btn-main" id="dockBtnSave">
+      <span>💾</span>
+      <span>Simpan</span>
+    </button>
+    <button class="dock-btn" id="dockBtnExport">
+      <span class="icon">📥</span>
+      <span>Cadangan</span>
+    </button>
+    <button class="dock-btn" id="dockBtnIos">
+      <span class="icon">📲</span>
+      <span>Install</span>
+    </button>
+  </nav>
+
+  <!-- iOS Install Modal Sheet -->
+  <div class="modal-backdrop" id="iosModalBackdrop">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <h3 class="modal-title">📲 Pasang di Layar iPhone</h3>
+      <p class="modal-desc">Gunakan sebagai aplikasi mandiri di iPhone tanpa download App Store:</p>
+      
+      <div class="ios-steps">
+        <div class="ios-step">
+          <div class="step-num">1</div>
+          <div class="step-text">Buka tautan website ini di peramban <strong>Safari</strong> pada iPhone Anda.</div>
+        </div>
+        <div class="ios-step">
+          <div class="step-num">2</div>
+          <div class="step-text">Ketuk tombol <strong>Share / Bagikan</strong> (ikon kotak dengan panah atas di bilah bawah Safari).</div>
+        </div>
+        <div class="ios-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Gulir ke bawah dan pilih <strong>"Tambah ke Layar Utama"</strong> (<em>Add to Home Screen</em>).</div>
+        </div>
+        <div class="ios-step">
+          <div class="step-num">4</div>
+          <div class="step-text">Ketuk <strong>"Tambah"</strong> di pojok kanan atas. Ikon ⚽ Kas Futsal akan langsung muncul di layar iPhone!</div>
+        </div>
+      </div>
+
+      <button class="btn-close-modal" id="btnCloseIosModal">Mengerti</button>
+    </div>
+  </div>
+
+  <!-- Export Options & Data Protection Modal -->
+  <div class="modal-backdrop" id="exportModalBackdrop">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <h3 class="modal-title">🛡️ Keamanan Data & Ekspor</h3>
+      <p class="modal-desc">Data Anda aman tersimpan ganda (Memori HP + Google Spreadsheet). Anda juga dapat mengunduh salinan berkas:</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 9px; margin-bottom: 18px;">
+        <button class="btn btn-outline" style="padding: 13px; justify-content: center; font-size: 0.90rem;" id="btnExportCsv">
+          📄 Download Rekap Excel / CSV
+        </button>
+        <button class="btn btn-outline" style="padding: 13px; justify-content: center; font-size: 0.90rem;" id="btnExportJson">
+          💾 Download File Backup (JSON)
+        </button>
+        <button class="btn btn-outline" style="padding: 13px; justify-content: center; font-size: 0.90rem;" id="btnRestoreSnapshot">
+          ⏮️ Pulihkan dari Cadangan Otomatis Terakhir
+        </button>
+        <button class="btn btn-danger-outline" style="padding: 11px; justify-content: center;" id="btnResetToTemplate">
+          ⚠️ Reset Kembali ke Contoh Awal
+        </button>
+      </div>
+
+      <button class="btn-close-modal" id="btnCloseExportModal">Tutup</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="appToast">
+    <span id="toastIcon">✅</span>
+    <span id="toastMessage">Data berhasil disimpan</span>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>

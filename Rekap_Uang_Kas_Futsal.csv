@@ -1,0 +1,14 @@
+﻿No,Tanggal,Keterangan Transaksi,Kategori,Pemasukan (Rp),Pengeluaran (Rp),Sisa / Saldo (Rp)
+1,2026-10-01,Saldo Awal Kas Tim,Kas Masuk Lain,500000,0,500000
+2,2026-10-04,Iuran Kas Mingguan Pemain (Pekan 1),Iuran Kas,300000,0,800000
+3,2026-10-04,Sewa Lapangan Futsal (2 Jam),Sewa Lapangan,0,350000,450000
+4,2026-10-04,Air Mineral 1 Karton + Es Batu,Konsumsi,0,45000,405000
+5,2026-10-11,Iuran Kas Mingguan Pemain (Pekan 2),Iuran Kas,280000,0,685000
+6,2026-10-11,Sewa Lapangan Futsal (2 Jam),Sewa Lapangan,0,350000,335000
+7,2026-10-15,Beli Bola Futsal Specs Original (1 pcs),Perlengkapan,0,240000,95000
+8,2026-10-18,Iuran Kas Mingguan Pemain (Pekan 3),Iuran Kas,300000,0,395000
+9,2026-10-18,Sewa Lapangan Futsal (2 Jam),Sewa Lapangan,0,350000,45000
+10,2026-10-18,Uang Pendaftaran Turnamen Antar Tim,Turnamen,0,200000,-155000
+11,2026-10-25,Hadiah Juara 3 Turnamen Futsal,Kas Masuk Lain,500000,0,345000
+12,2026-10-25,Iuran Kas Mingguan Pemain (Pekan 4),Iuran Kas,320000,0,665000
+TOTAL,,,,2200000,1535000,665000

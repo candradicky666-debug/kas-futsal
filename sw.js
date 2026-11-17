@@ -1,30 +1,32 @@
-const CACHE_NAME = 'kas-futsal-v1';
+const CACHE_NAME = 'penjualan-pwa-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './icon-192.png',
+  './icon-512.png'
 ];
 
+// Install Event
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(ASSETS_TO_CACHE).catch(() => {
+        return cache.addAll(['./', './index.html', './manifest.json']);
+      });
     })
   );
   self.skipWaiting();
 });
 
+// Activate Event - Hapus semua cache versi lama
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log('Menghapus cache lama:', key);
             return caches.delete(key);
           }
         })
@@ -34,37 +36,47 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Fetch Event - Network First untuk HTML & API agar selalu dapat data & kode terbaru
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
-  if (event.request.method !== 'GET') return;
+  // Langsung ke jaringan untuk panggilan API Google Script
+  if (event.request.url.includes('script.google.com')) {
+    return;
+  }
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Fetch in background to update cache (stale-while-revalidate)
-        fetch(event.request).then((networkResponse) => {
+  // Network First untuk navigasi halaman utama (index.html)
+  if (event.request.mode === 'navigate' || event.request.url.includes('index.html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse);
+              cache.put(event.request, responseClone);
             });
           }
-        }).catch(() => {/* offline */});
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
           return networkResponse;
-        }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-        return networkResponse;
-      }).catch(() => {
-        if (event.request.mode === 'navigate') {
+        })
+        .catch(() => {
           return caches.match('./index.html');
+        })
+    );
+    return;
+  }
+
+  // Stale-While-Revalidate untuk aset statis (icon, dll)
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
         }
-      });
+        return networkResponse;
+      }).catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
     })
   );
 });
